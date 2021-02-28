@@ -3,6 +3,7 @@ const nanoid = require('nanoid')
 const createPetModel = db => {
   return {
     findMany(filter) {
+      console.log('db.get(`pet`)')
       return db.get('pet')
         .filter(filter)
         .value()
