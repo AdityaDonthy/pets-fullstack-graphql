@@ -53,11 +53,11 @@ module.exports = {
       console.log(`field level resolver runs and received a`, {pet})
       return context.models.User.findOne()
     },
-    // img(pet) {
-    //   return pet.type === 'DOG'
-    //     ? 'https://placedog.net/300/300'
-    //     : 'http://placekitten.com/300/300'
-    // }
+    img(pet) {
+      return pet.type === 'DOG'
+        ? 'https://placedog.net/300/300'
+        : 'http://placekitten.com/300/300'
+    }
   },
   User: {
     pets(user,__, context) {

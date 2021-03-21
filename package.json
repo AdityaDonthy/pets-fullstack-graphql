@@ -24,6 +24,7 @@
   },
   "scripts": {
     "server": "node api/src/server.js",
+    "dev": "parcel client/index.html",
     "app": "parcel client/index.html --out-dir client/dist",
     "test-server": "jest api/tests"
   },
