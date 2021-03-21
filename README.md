@@ -1,5 +1,7 @@
 ### A simple full-stack graphql app with React app using apollo-client and a node server using apollo-server to manage Pets
 
+## Server
+
 To start an apollo server we first need to create schema and resolvers and pass that object to ApolloServer.
 
 On the server, a shared context object i.e an object with key and values pairs and functions is shared amongs't all the resolvers. Whatever context() function returns, will be the shared context across resolvers. In this function We return an object which is the models object
@@ -27,13 +29,11 @@ server.listen(4824).then(({ url }) => {
 We also need to define a [schema](https://github.com/AdityaDonthy/pets-fullstack-graphql/blob/master/api/src/schema.js) on the server which describes the data we are exposing from our server. You're gonna create types, those types are usually based off on shapes in your database.
 We could also have virtual fields here, meaning these fields don't exist directly in the db but are computed on the server and exposed in the api.
 
-We have to define
-<ol>
-  <li> type <li/>
-  <li> input <li/>
-  <li> query <li/>
-  <li> mutation <li/>
-</ol>
+On server side we define the following things
+<li> Type Definitions </li>
+<li> Query Definitions </li>
+<li> Mutation Definitions </li>
+<li> Resolvers </li>
 
 Example :
 ```
@@ -90,12 +90,11 @@ The same applies to the Mtation type. The only difference being the functions de
 	
 ### Query resolver
 For each field defined in the Query definition, there is a resolver function with the same name. We have a resolver for Pets which returns an array of Pets and we have a resolver for Pet which returns a single Pet. Let's see the signatire of a resolver
- . The first parameter(_) is the parent resolver. This is null if the resolvers are from Query definition
- . The second parameter is the 'arguments' a client passes while querying frm frontend
- . The third parameter is the context object that is passed during the server startup. We destructure data access models from Context
+ <li>The first parameter(_) is the parent resolver. This is null if the resolvers are from Query definition </li>
+ <li> The second parameter is the 'arguments' a client passes while querying frm frontend </li>
+ <li>The third parameter is the context object that is passed during the server startup. We destructure data access models from Context </li>
  
 We return the data by calling our data access functions exposed on the model object
-![image](https://user-images.githubusercontent.com/11058475/111899337-0c1b5000-8a52-11eb-81c5-686ab39a60b6.png)
 
 ### Mutation resolver
 Just like for queries, we wrte reolvers for our mutations. Below is an example to create and update a Pet
@@ -142,3 +141,93 @@ We register a resolver for a field ```owner``` on ```Pet```. We need to tell Gra
 Unlike ```createPet and updatePet```, this is not on a Mutation but a Type. owner is in the Pet Type. The first argument is the actual Pet that get's resolved, meaning when someone asks for a Pet, the ```Pet``` QueryResolver is run first and then pass the resolved pet here. We could use that resolved data here
 
 Unlike REST, your API is a set of nodes that know how to resolve themselves and have links to other nodes. This allows a client to ask for nodes and then follow those links to get related nodes. And that's basically nodes and edges inside of graph, and **that's the graph in GraphQL.**
+
+** Client
+On the client side we use apollo-client. We need to create a client as shown below
+```
+const client = new ApolloClient({
+  cache,
+  link,
+  typeDefs,
+  resolvers,
+});
+
+const query = gql`
+  query Pets {
+    pets {
+      name
+      id
+      type
+    }
+  }
+`;
+
+client.query({query}).then(res => console.log(res))
+
+```
+
+Once the client is created, it needs to be passed to our App. We do this using the React's context as shown below.
+
+```
+<ApolloProvider client={client}>
+      <App />
+</ApolloProvider>
+```
+
+The above code we create a client and then query and log the results. It's that simple! We have a [Pets]() page component which renders 2 ui components ```NewPet``` and ```PetBox``` . In this component we also Query for data, i.e the ```Pets``` stored in our db and also a mutation, when we create a ```Pet```. To achieve this we use hooks provided by Apollo. 
+
+### useQuery
+The useQuery React hook is the primary API for executing queries in an Apollo application. To run a query within a React component, call useQuery and pass it a GraphQL query string. When your component renders, useQuery returns an object from Apollo Client that contains loading, error, and data properties you can use to render your UI.
+```
+const ALL_PETS = gql`
+  query Pets {
+    pets {
+      name
+      id
+      type
+      img
+    }
+  }
+`;
+```
+We use it in the component as shown below. We pass the ```ALL_PETS``` query to ```useQuery``` . This hook returns an object with the properties loading, error, and data
+
+```
+  //The function component will rerender when any one of the below states change
+  const { data, loading, error } = useQuery(ALL_PETS);
+```
+
+### useMutation
+The ```useMutation``` React hook is the primary API for executing mutations in an Apollo application. To run a mutation, you first call useMutation within a React component and pass it a GraphQL string that represents the mutation. When your component renders, useMutation returns a tuple that includes:
+
+<li>A mutate function that you can call at any time to execute the mutation</li>
+<li>An object with fields that represent the current status of the mutation's execution</li>
+
+```
+ //useMutation doesn't run on caling it, unlike the useQuery. It runs when the function in the argument is invoked 'createPet'
+  
+ const [createPet, { data: d, loading: l, error: e }] = useMutation(ADD_PET, {
+    //We can pass in an optional updater function which will be invoked after the mutatation completes on server
+    //This function will be invoked with the internal Apollo cache and the response from the mutation
+    //We will now update the query in the local cache to the latest response to keep them in sync
+    //This will cause a rerender of the component
+    
+    update(cache, { data: { createPet } }) {
+      const data = cache.readQuery({ query: ALL_PETS });
+      cache.writeQuery({
+        query: ALL_PETS,
+        data: { pets: [createPet, ...data.pets] },
+      });
+    },
+  });
+```
+
+In the above code we have deined a mutation and also defined the caching strategy. This is run once the mutation on the server completes successfully. We are updating the locl cache with the data that was updated on server by this mutation. 
+
+We invoke the mutatin when someone fills out the Pet form and hits Submit
+```
+  const onSubmit = (input) => {
+    setModal(false);
+    createPet({ variables: { newPet: input } });
+  };
+```
