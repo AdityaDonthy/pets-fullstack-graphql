@@ -35,7 +35,7 @@ On server side we define the following things
 <li> Mutation Definitions </li>
 <li> Resolvers </li>
 
-Example :
+
 ```
 //There's a relationship between the User and Pet
 //A User can have Pets and a Pet can have a User
@@ -142,7 +142,8 @@ Unlike ```createPet and updatePet```, this is not on a Mutation but a Type. owne
 
 Unlike REST, your API is a set of nodes that know how to resolve themselves and have links to other nodes. This allows a client to ask for nodes and then follow those links to get related nodes. And that's basically nodes and edges inside of graph, and **that's the graph in GraphQL.**
 
-** Client
+## Client
+
 On the client side we use apollo-client. We need to create a client as shown below
 ```
 const client = new ApolloClient({
